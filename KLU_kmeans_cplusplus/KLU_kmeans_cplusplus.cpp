@@ -9,15 +9,16 @@
 #include <stdexcept>
 #include <random>
 #include  <iterator>
+#include <chrono>
 
 //Constants for file locations,
 //and for k-means settings
 const std::string DATA_FOLDER = "data/";
 const std::string OUTPUTS_FOLDER = "outputs/";
-const std::string DATA_FILENAME = DATA_FOLDER + "unbalance.txt";
+const std::string DATA_FILENAME = DATA_FOLDER + "s4.txt";
 const std::string CENTROID_FILENAME = OUTPUTS_FOLDER + "centroid.txt";
 const std::string PARTITION_FILENAME = OUTPUTS_FOLDER + "partition.txt";
-const int NUM_CENTROIDS = 8;  // Number of clusters
+const int NUM_CENTROIDS = 15;  // Number of clusters s4 = 15, unbalanced = 8
 const char SEPARATOR = ' ';
 const int MAX_ITERATIONS = 25;
 const int MAX_REPEATS = 5;
@@ -560,8 +561,8 @@ double runKMeans(std::vector<DataPoint>& dataPoints, int iterations, std::vector
 	return bestSse;
 }
 
-double randomSwap(std::vector<DataPoint>& dataPoints, std::vector<DataPoint>& centroids) {
-	int swaps = 45;
+double randomSwap(std::vector<DataPoint>& dataPoints, std::vector<DataPoint>& centroids, bool heuristic) {
+	int swaps = 13;
 	int iterations = 2;
 
 	double bestSse = std::numeric_limits<double>::max();
@@ -571,10 +572,23 @@ double randomSwap(std::vector<DataPoint>& dataPoints, std::vector<DataPoint>& ce
 
 		//Valitse centroid
 		int randomCentroid = select_randomly(centroids.begin(), centroids.end());
+
 		oldCentroid = centroids[randomCentroid];
 
-		//Valitse datapiste
-		int randomDataPoint = select_randomly(dataPoints.begin(), dataPoints.end());
+		int randomDataPoint = -1;
+		double best = -1;
+
+		if (heuristic) {
+			for (int j = 0; j < dataPoints.size();++j) {
+				if (calculateEuclideanDistance(oldCentroid, dataPoints[j]) > best || j == 0) {
+					randomDataPoint = j;
+				}
+			}
+		}
+		else {
+			//Valitse datapiste
+			randomDataPoint = select_randomly(dataPoints.begin(), dataPoints.end());
+		}
 
 		//Suorita vaihto
 		centroids[randomCentroid] = dataPoints[randomDataPoint];
@@ -627,12 +641,15 @@ int main() {
 		// Disabled, as nearestNeighbor updates minDistance --> might cause problems
 		//findNearestNeighborExample(dataPoints);
 
+		// Start the clock
+		auto start = std::chrono::high_resolution_clock::now();
+
 		// Initial partition and SSE using random centroids
 		std::vector<int> initialPartition = optimalPartition(dataPoints, centroids);
 		double initialSSE = calculateSSE(dataPoints, centroids, initialPartition);
 
 		// Write the initial partition to a text file
-		writePartitionToFile(initialPartition, OUTPUTS_FOLDER + "OptimalPartition.txt");
+		//writePartitionToFile(initialPartition, OUTPUTS_FOLDER + "OptimalPartition.txt");
 
 		// Print initial SSE
 		std::cout << "Initial Total Sum-of-Squared Errors (SSE): " << initialSSE << std::endl;
@@ -641,14 +658,24 @@ int main() {
 		int stopCounter = 0;
 
 		//run just k-means
-		//runKMeans(dataPoints, MAX_ITERATIONS, centroids);
+		runKMeans(dataPoints, MAX_ITERATIONS, centroids);
 		
+		// Stop the clock
+		auto end = std::chrono::high_resolution_clock::now();
+
+		// Calculate the duration
+		std::chrono::duration<double> duration = end - start;
+
+		// Output the duration in seconds
+		std::cout << "Time taken: " << duration.count() << " seconds" << std::endl;
+
+		/*
 		//Repeated k-means
 		for (int repeat = 0; repeat < MAX_REPEATS; ++repeat) {
 			std::cout << "round: " << repeat << std::endl;
 
 			// New centroids
-			centroids = generateRandomCentroids(NUM_CENTROIDS, dataPoints);
+			if(repeat != 0) centroids = generateRandomCentroids(NUM_CENTROIDS, dataPoints);
 
 			double newSse = runKMeans(dataPoints, MAX_ITERATIONS, centroids);	
 
@@ -656,15 +683,44 @@ int main() {
 				bestSse1 = newSse;
 			}
 		}
-
-		// Write the constructed centroids to a text file (optional)
+		*/
+		
+		//Write the constructed centroids to a text file (optional)
 		writeCentroidsToFile(centroids, OUTPUTS_FOLDER + "ConstructedCentroids.txt");
 
+		// Start the clock
+		start = std::chrono::high_resolution_clock::now();
+
 		//Random swap
-		double bestSse2 = randomSwap(dataPoints, ogCentroids);
+		double bestSse2 = randomSwap(dataPoints, ogCentroids, false);
+
+		// Stop the clock
+		end = std::chrono::high_resolution_clock::now();
+
+		// Calculate the duration
+		duration = end - start;
+
+		// Output the duration in seconds
+		std::cout << "Time taken: " << duration.count() << " seconds" << std::endl;
+
+		// Start the clock
+		start = std::chrono::high_resolution_clock::now();
+
+		double bestSse3 = randomSwap(dataPoints, ogCentroids, true);
+
+		// Stop the clock
+		end = std::chrono::high_resolution_clock::now();
+
+		// Calculate the duration
+		duration = end - start;
+
+		// Output the duration in seconds
+		std::cout << "Time taken: " << duration.count() << " seconds" << std::endl;
 
 		std::cout << "(Naive)Best Sum-of-Squared Errors (SSE): " << bestSse1 << std::endl;
 		std::cout << "(RS)Best Sum-of-Squared Errors (SSE): " << bestSse2 << std::endl;
+		std::cout << "(Heur)Best Sum-of-Squared Errors (SSE): " << bestSse3 << std::endl;
+
 
 		return 0;
 	}
