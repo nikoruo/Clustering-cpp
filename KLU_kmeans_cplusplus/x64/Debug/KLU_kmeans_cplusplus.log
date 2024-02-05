@@ -1,0 +1,13 @@
+﻿  KLU_kmeans_cplusplus.cpp
+C:\Users\nikon\Desktop\KLU\Koodit\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(139,17): warning C4244: 'initializing': conversion from '__int64' to 'int', possible loss of data
+C:\Users\nikon\Desktop\KLU\Koodit\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(207,26): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\nikon\Desktop\KLU\Koodit\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(389,22): warning C4244: 'initializing': conversion from '__int64' to 'int', possible loss of data
+C:\Users\nikon\Desktop\KLU\Koodit\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(423,37): warning C4244: 'argument': conversion from 'double' to '_Ty', possible loss of data
+C:\Users\nikon\Desktop\KLU\Koodit\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(423,37): warning C4244:         with
+C:\Users\nikon\Desktop\KLU\Koodit\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(423,37): warning C4244:         [
+C:\Users\nikon\Desktop\KLU\Koodit\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(423,37): warning C4244:             _Ty=int
+C:\Users\nikon\Desktop\KLU\Koodit\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(423,37): warning C4244:         ]
+C:\Users\nikon\Desktop\KLU\Koodit\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(573,22): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\nikon\Desktop\KLU\Koodit\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(577,23): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\nikon\Desktop\KLU\Koodit\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(616,64): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+  KLU_kmeans_cplusplus.vcxproj -> C:\Users\nikon\Desktop\KLU\Koodit\KLU_kmeans_cplusplus\x64\Debug\KLU_kmeans_cplusplus.exe

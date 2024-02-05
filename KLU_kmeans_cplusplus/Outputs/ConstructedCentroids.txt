@@ -1,0 +1,16 @@
+Centroid for Cluster 1:
+153853 350236 
+Centroid for Cluster 2:
+146468 349635 
+Centroid for Cluster 3:
+490037 349763 
+Centroid for Cluster 4:
+209948 349963 
+Centroid for Cluster 5:
+181754 381942 
+Centroid for Cluster 6:
+149892 346324 
+Centroid for Cluster 7:
+150211 353362 
+Centroid for Cluster 8:
+178162 378081 
