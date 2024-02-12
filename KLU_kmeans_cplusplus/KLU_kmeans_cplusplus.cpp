@@ -610,11 +610,116 @@ double randomSwap(std::vector<DataPoint>& dataPoints, std::vector<DataPoint>& ce
 	return bestSse;
 }
 
+//Levenshtein's edit distance
+static int editDistance(const std::string& word1, const std::string& word2) {
+	int m = word1.size();
+	int n = word2.size();
+
+	// Matrix
+	std::vector<std::vector<int>> dp(m + 1, std::vector<int>(n + 1, 0));
+
+	// Initialize the matrix
+	for (int i = 0; i <= m; i++) {
+		dp[i][0] = i;
+	}
+	for (int j = 0; j <= n; j++) {
+		dp[0][j] = j;
+	}
+
+	// Fill the matrix
+	for (int i = 1; i <= m; i++) {
+		for (int j = 1; j <= n; j++) {
+			if (word1[i - 1] == word2[j - 1]) {
+				dp[i][j] = dp[i - 1][j - 1];
+			}
+			else {
+				dp[i][j] = 1 + std::min({						
+					dp[i - 1][j],		//remove
+					dp[i][j - 1],		//insert
+					dp[i - 1][j - 1]	//replace
+					});
+			}
+		}
+	}
+
+	return dp[m][n];
+}
+
+// Function to calculate pairwise distances between strings in two vectors
+static std::vector<std::vector<int>> pairwiseDistances(const std::vector<std::string>& vec1, const std::vector<std::string>& vec2) {
+	int n1 = vec1.size();
+	int n2 = vec2.size();
+
+	// Create a 2D vector to store pairwise distances
+	std::vector<std::vector<int>> distances(n1, std::vector<int>(n2, 0));
+
+	// Calculate distances for all pairs of strings
+	for (int i = 0; i < n1; ++i) {
+		for (int j = 0; j < n2; ++j) {
+			distances[i][j] = editDistance(vec1[i], vec2[j]);
+		}
+	}
+
+	return distances;
+}
+
+// Function to find the medoid for a string cluster
+std::pair<std::string, int> findMedoid(const std::vector<std::string>& cluster) {
+	int minSumDistance = std::numeric_limits<int>::max();
+	std::string medoid;
+
+	// Iterate through each string in the cluster
+	for (const std::string& str1 : cluster) {
+		int sumDistance = 0;
+
+		// Calculate the sum of distances to other strings in the cluster
+		for (const std::string& str2 : cluster) {
+			sumDistance += editDistance(str1, str2);
+		}
+
+		// Update the medoid if the sum of distances is smaller
+		if (sumDistance < minSumDistance) {
+			minSumDistance = sumDistance;
+			medoid = str1;
+		}
+	}
+
+	return std::make_pair(medoid, minSumDistance);
+}
+
 int main() {
-	// Get the number of dimensions in the data
 	int numDimensions = getNumDimensions(DATA_FILENAME);
 
-	if (numDimensions != -1) {
+	if (true) {
+		// Edit distance between 2 strings
+		std::string str1 = "kissanpennut";
+		std::string str2 = "koiranpentu";
+		std::cout << "Edit distance between '" << str1 << "' and '" << str2 << "': " << editDistance(str1, str2) << std::endl;
+	
+		// All pairwise distances between two clusters
+		std::vector<std::string> strCluster1 = { "ireadL", "relanE", "rlanZd", "irelLITnd"};
+		std::vector<std::string> strCluster2 = { "fiInVlLand", "filanNM", "finPAlaQd", "finlCnUd"};
+		
+		std::vector<std::vector<int>> dist = pairwiseDistances(strCluster1, strCluster2);
+		int tpd = 0;
+
+		for (int i = 0; i < dist.size(); ++i) {
+			for (int j = 0; j < dist[i].size(); ++j) {
+				tpd += dist[i][j];
+				std::cout << "Distance between '" << strCluster1[i] << "' and '" << strCluster2[j] << "': " << dist[i][j] << std::endl;
+			}
+		}
+		std::cout << "Total pairwise distances:  " << tpd << std::endl;
+
+		// Medoids and costs
+		std::pair<std::string, int> result = findMedoid(strCluster1);
+		std::cout << "Medoid of the cluster1: " << result.first << ", cost: " << result.second << std::endl;
+
+		result = findMedoid(strCluster2);
+		std::cout << "Medoid of the cluster2: " << result.first << ", cost: " << result.second << std::endl;
+	}
+
+	if(false){ //(numDimensions != -1) {
 		std::cout << "Number of dimensions in the data: " << numDimensions << std::endl;
 
 		// Read data points

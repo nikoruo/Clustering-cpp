@@ -1,30 +1,30 @@
 Centroid for Cluster 1:
-450522 637204 
+244444 490855 
 Centroid for Cluster 2:
-562943 671250 
+594520 235811 
 Centroid for Cluster 3:
-388464 497152 
+396347 338561 
 Centroid for Cluster 4:
-319911 299823 
+555370 671810 
 Centroid for Cluster 5:
-657315 757380 
+490576 785719 
 Centroid for Cluster 6:
-322016 775141 
+284948 703706 
 Centroid for Cluster 7:
-777105 569634 
+776716 568375 
 Centroid for Cluster 8:
-243138 484983 
+540821 388364 
 Centroid for Cluster 9:
-546291 509413 
+285998 280086 
 Centroid for Cluster 10:
-648584 602890 
+444325 639818 
 Centroid for Cluster 11:
-520365 369389 
+551841 522799 
 Centroid for Cluster 12:
-277825 662950 
+735423 417493 
 Centroid for Cluster 13:
-733844 417002 
+391121 506288 
 Centroid for Cluster 14:
-498086 785390 
+653413 612902 
 Centroid for Cluster 15:
-593985 235155 
+654151 762334 
