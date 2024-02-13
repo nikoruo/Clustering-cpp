@@ -15,7 +15,7 @@
 //and for k-means settings
 const std::string DATA_FOLDER = "data/";
 const std::string OUTPUTS_FOLDER = "outputs/";
-const std::string DATA_FILENAME = DATA_FOLDER + "s4.txt";
+const std::string DATA_FILENAME = DATA_FOLDER + "s2.txt";
 const std::string CENTROID_FILENAME = OUTPUTS_FOLDER + "centroid.txt";
 const std::string PARTITION_FILENAME = OUTPUTS_FOLDER + "partition.txt";
 const int NUM_CENTROIDS = 15;  // Number of clusters s4 = 15, unbalanced = 8
@@ -663,6 +663,25 @@ static std::vector<std::vector<int>> pairwiseDistances(const std::vector<std::st
 	return distances;
 }
 
+// Function to calculate pairwise distances within a cluster
+std::vector<std::vector<int>> pairwiseDistances(const std::vector<std::string>& cluster) {
+	std::vector<std::vector<int>> distances(cluster.size(), std::vector<int>(cluster.size(), 0));
+
+	// Calculate pairwise distances between each pair of strings in the cluster
+	for (size_t i = 0; i < cluster.size(); ++i) {
+		for (size_t j = i + 1; j < cluster.size(); ++j) {
+			// Calculate edit distance between strings at indices i and j
+			int distance = editDistance(cluster[i], cluster[j]);
+
+			// Store the calculated distance in both (i, j) and (j, i) positions
+			distances[i][j] = distance;
+			distances[j][i] = distance;
+		}
+	}
+
+	return distances;
+}
+
 // Function to find the medoid for a string cluster
 std::pair<std::string, int> findMedoid(const std::vector<std::string>& cluster) {
 	int minSumDistance = std::numeric_limits<int>::max();
@@ -687,16 +706,50 @@ std::pair<std::string, int> findMedoid(const std::vector<std::string>& cluster) 
 	return std::make_pair(medoid, minSumDistance);
 }
 
+//Euclidian distance between two centroids multiplied by their sizes
+double centroidDistance(const DataPoint& centroid1, const int size1, const DataPoint& centroid2, const int size2) {
+	double distance = calculateEuclideanDistance(centroid1, centroid2);
+
+	distance *= size1 * size2;
+
+	return distance;
+}
+
+//Pairwise distances between two clusters
+double calculatePairwiseDistancesOfClusters(const std::vector<DataPoint>& dataPoints, const std::vector<int>& partition, const int c1, const int c2) {
+	double sumDistances = 0.0;
+	std::vector<DataPoint> cluster1;
+	std::vector<DataPoint> cluster2;
+
+	for (size_t i = 0; i < partition.size(); i++) {
+		if (partition[i] == c1) cluster1.push_back(dataPoints[i]);
+		else if (partition[i] == c2) cluster2.push_back(dataPoints[i]);
+
+	}
+
+	// Calculate pairwise distances between all data points in the two clusters
+	for (const DataPoint& point1 : cluster1) {
+		for (const DataPoint& point2 : cluster2) {
+			double distance = calculateEuclideanDistance(point1, point2);
+			sumDistances += distance;
+		}
+	}
+
+	return sumDistances;
+}
+
 int main() {
 	int numDimensions = getNumDimensions(DATA_FILENAME);
 
-	if (true) {
+	if (false) {
 		// Edit distance between 2 strings
+		std::cout << "Edit distance between 2 strings" << std::endl;
 		std::string str1 = "kissanpennut";
 		std::string str2 = "koiranpentu";
 		std::cout << "Edit distance between '" << str1 << "' and '" << str2 << "': " << editDistance(str1, str2) << std::endl;
 	
 		// All pairwise distances between two clusters
+		std::cout << "All pairwise distances between two clusters" << std::endl;
 		std::vector<std::string> strCluster1 = { "ireadL", "relanE", "rlanZd", "irelLITnd"};
 		std::vector<std::string> strCluster2 = { "fiInVlLand", "filanNM", "finPAlaQd", "finlCnUd"};
 		
@@ -711,7 +764,36 @@ int main() {
 		}
 		std::cout << "Total pairwise distances:  " << tpd << std::endl;
 
+		// Pairwise distances inside a cluster
+		std::cout << "Pairwise distances inside a cluster" << std::endl;
+		dist.clear();
+		tpd = 0;
+
+		dist = pairwiseDistances(strCluster1);
+
+		// Cluster1
+		std::cout << "Pairwise distances within the cluster1:" << std::endl;
+		for (size_t i = 0; i < dist.size(); ++i) {
+			for (size_t j = 1+i; j < dist[i].size(); ++j) {
+				tpd += dist[i][j];
+				std::cout << "Distance between '" << strCluster1[i] << "' and '" << strCluster1[j] << "': " << dist[i][j] << std::endl;
+			}
+		}
+		std::cout << "Total pairwise distances:  " << tpd << std::endl;
+
+		// Cluster2
+		std::cout << "Pairwise distances within the cluster2:" << std::endl;
+		for (size_t i = 0; i < dist.size(); ++i) {
+			for (size_t j = 1 + i; j < dist[i].size(); ++j) {
+				tpd += dist[i][j];
+				std::cout << "Distance between '" << strCluster2[i] << "' and '" << strCluster2[j] << "': " << dist[i][j] << std::endl;
+			}
+		}
+		std::cout << "Total pairwise distances:  " << tpd << std::endl;
+
 		// Medoids and costs
+		std::cout << "Medoids and costs" << std::endl;
+
 		std::pair<std::string, int> result = findMedoid(strCluster1);
 		std::cout << "Medoid of the cluster1: " << result.first << ", cost: " << result.second << std::endl;
 
@@ -719,7 +801,7 @@ int main() {
 		std::cout << "Medoid of the cluster2: " << result.first << ", cost: " << result.second << std::endl;
 	}
 
-	if(false){ //(numDimensions != -1) {
+	if(true){ //(numDimensions != -1) {
 		std::cout << "Number of dimensions in the data: " << numDimensions << std::endl;
 
 		// Read data points
@@ -752,6 +834,24 @@ int main() {
 		// Initial partition and SSE using random centroids
 		std::vector<int> initialPartition = optimalPartition(dataPoints, centroids);
 		double initialSSE = calculateSSE(dataPoints, centroids, initialPartition);
+
+		std::vector<int> initialSizes(centroids.size(), 0);
+		for (size_t i = 0; i < initialPartition.size(); ++i) {
+			initialSizes[initialPartition[i]] += 1;
+		}
+		std::cout << "Dataset size: " << dataPoints.size() << std::endl;
+		for (size_t i = 0; i < centroids.size(); ++i) {
+			std::cout << "size: " << initialSizes[i] << std::endl;
+		}
+
+		//Example: Euclidian distance between two centroids multiplied by their sizes
+		double exDist = centroidDistance(centroids[0], initialSizes[0], centroids[1], initialSizes[1]);
+		std::cout << "Euclidian distance between two centroids multiplied by their sizes: " << exDist << std::endl;
+
+		//Example: Pairwise distances of 2 clusters
+		double exPairwiseDistance = calculatePairwiseDistancesOfClusters(dataPoints, initialPartition, 0, 1);
+		std::cout << "Pairwise distance of 2 clusters: " << exPairwiseDistance << std::endl;
+
 
 		// Write the initial partition to a text file
 		//writePartitionToFile(initialPartition, OUTPUTS_FOLDER + "OptimalPartition.txt");
@@ -825,7 +925,6 @@ int main() {
 		std::cout << "(Naive)Best Sum-of-Squared Errors (SSE): " << bestSse1 << std::endl;
 		std::cout << "(RS)Best Sum-of-Squared Errors (SSE): " << bestSse2 << std::endl;
 		std::cout << "(Heur)Best Sum-of-Squared Errors (SSE): " << bestSse3 << std::endl;
-
 
 		return 0;
 	}
