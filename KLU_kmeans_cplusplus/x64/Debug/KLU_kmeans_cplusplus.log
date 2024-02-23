@@ -1,17 +1,18 @@
 ﻿  KLU_kmeans_cplusplus.cpp
-C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(140,17): warning C4244: 'initializing': conversion from '__int64' to 'int', possible loss of data
-C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(208,26): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(390,22): warning C4244: 'initializing': conversion from '__int64' to 'int', possible loss of data
-C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(424,37): warning C4244: 'argument': conversion from 'double' to '_Ty', possible loss of data
-C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(424,37): warning C4244:         with
-C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(424,37): warning C4244:         [
-C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(424,37): warning C4244:             _Ty=int
-C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(424,37): warning C4244:         ]
-C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(574,22): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(590,37): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(615,8): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(616,8): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(650,9): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(651,9): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(817,64): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(144,17): warning C4244: 'initializing': conversion from '__int64' to 'int', possible loss of data
+C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(212,26): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(394,22): warning C4244: 'initializing': conversion from '__int64' to 'int', possible loss of data
+C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(428,37): warning C4244: 'argument': conversion from 'double' to '_Ty', possible loss of data
+C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(428,37): warning C4244:         with
+C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(428,37): warning C4244:         [
+C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(428,37): warning C4244:             _Ty=int
+C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(428,37): warning C4244:         ]
+C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(631,22): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(647,37): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(672,8): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(673,8): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(707,9): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(708,9): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(812,13): warning C4244: 'initializing': conversion from '__int64' to 'int', possible loss of data
+C:\Users\Niko\Documents\GitHub\Clustering-cpp\KLU_kmeans_cplusplus\KLU_kmeans_cplusplus.cpp(1000,64): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
   KLU_kmeans_cplusplus.vcxproj -> C:\Users\Niko\Documents\GitHub\Clustering-cpp\x64\Debug\KLU_kmeans_cplusplus.exe

@@ -15,7 +15,7 @@
 //and for k-means settings
 const std::string DATA_FOLDER = "data/";
 const std::string OUTPUTS_FOLDER = "outputs/";
-const std::string DATA_FILENAME = DATA_FOLDER + "s2.txt";
+const std::string DATA_FILENAME = DATA_FOLDER + "s1.txt";
 const std::string CENTROID_FILENAME = OUTPUTS_FOLDER + "centroid.txt";
 const std::string PARTITION_FILENAME = OUTPUTS_FOLDER + "partition.txt";
 const int NUM_CENTROIDS = 15;  // Number of clusters s4 = 15, unbalanced = 8
@@ -32,6 +32,10 @@ public:
 
     // Minimum distance from this data point to a centroid
     double minDistance = std::numeric_limits<double>::max();
+
+	//For subsets
+	bool obsolete = false;
+	int ogIndex = -1;
 
     // Default constructor
 	DataPoint() {};
@@ -561,6 +565,59 @@ double runKMeans(std::vector<DataPoint>& dataPoints, int iterations, std::vector
 	return bestSse;
 }
 
+std::pair<double, std::vector<int>> runKMeans(std::vector<DataPoint>& dataPoints, int iterations, std::vector<DataPoint>& centroids, bool foo) {
+	std::vector<double> bestCentroids;
+	double bestSse = std::numeric_limits<double>::max();
+	int stopCounter = 0;
+	double previousSSE = std::numeric_limits<double>::max();
+	std::vector<int> previousPartition(dataPoints.size(), -1);
+	std::vector<int> activeClusters;
+
+	for (int iteration = 0; iteration < iterations; ++iteration) {
+		// Calculate new centroids and update the partition
+		std::vector<int> newPartition = optimalPartition(dataPoints, centroids);
+		activeClusters.clear();
+
+		centroids = kMeansCentroidStep(dataPoints, newPartition, NUM_CENTROIDS);
+		//Activity
+		for (int i = 0; i < newPartition.size(); ++i) {
+
+			if (newPartition[i] != previousPartition[i]) {
+				if (std::find(activeClusters.begin(), activeClusters.end(), newPartition[i]) == activeClusters.end())
+				{
+					activeClusters.push_back(newPartition[i]);
+				}
+				if (previousPartition[i] != -1 && std::find(activeClusters.begin(), activeClusters.end(), previousPartition[i]) == activeClusters.end())
+				{
+					activeClusters.push_back(previousPartition[i]);
+				}
+			}
+		}
+
+		// Calculate and report sum-of-squared errors
+		double sse = calculateSSE(dataPoints, centroids, newPartition);
+		std::cout << "Total SSE after iteration " << iteration + 1 << ": " << sse << "and activity: " << activeClusters.size() << std::endl;
+
+		if (sse < bestSse) {
+			bestSse = sse;
+		}
+		else if (sse == previousSSE) {
+			stopCounter++;
+		}
+
+		// For now, we use stopCounter
+		// Optionally, check for convergence or other stopping criteria		
+		if (stopCounter == 3) {
+			break;
+		}
+
+		previousSSE = sse;
+		previousPartition = newPartition;
+	}
+
+	return std::make_pair(bestSse, previousPartition);
+}
+
 double randomSwap(std::vector<DataPoint>& dataPoints, std::vector<DataPoint>& centroids, bool heuristic) {
 	int swaps = 13;
 	int iterations = 2;
@@ -721,10 +778,11 @@ double calculatePairwiseDistancesOfClusters(const std::vector<DataPoint>& dataPo
 	std::vector<DataPoint> cluster1;
 	std::vector<DataPoint> cluster2;
 
+
+	// Initialize the clusters
 	for (size_t i = 0; i < partition.size(); i++) {
 		if (partition[i] == c1) cluster1.push_back(dataPoints[i]);
 		else if (partition[i] == c2) cluster2.push_back(dataPoints[i]);
-
 	}
 
 	// Calculate pairwise distances between all data points in the two clusters
@@ -736,6 +794,120 @@ double calculatePairwiseDistancesOfClusters(const std::vector<DataPoint>& dataPo
 	}
 
 	return sumDistances;
+}
+
+// Function to find kNN
+std::vector<DataPoint> findKNN(DataPoint queryPoint, const std::vector<DataPoint>& targetPoints, int k) {
+	// Throw an error if the set of data points is empty
+	if (targetPoints.empty()) {
+		throw std::runtime_error("Error: Cannot find nearest neighbors in an empty set of data");
+	}
+
+	std::vector<std::pair<double, int>> distancesAndIndices;
+
+	for (const DataPoint& dataPoint : targetPoints) {
+		double distance = calculateEuclideanDistance(queryPoint, dataPoint);
+		
+		auto it = std::find(targetPoints.begin(), targetPoints.end(), dataPoint);
+		int index = std::distance(targetPoints.begin(), it);
+
+		distancesAndIndices.emplace_back(distance, index);
+	}
+
+	std::sort(distancesAndIndices.begin(), distancesAndIndices.end());
+
+	std::vector<DataPoint> kNN;
+	for (int i = 0; i < k; ++i) {
+		kNN.push_back(targetPoints[distancesAndIndices[i].second]);
+	}
+
+	return kNN;
+}
+
+void meanShift(std::vector<DataPoint>& dataPoints, int k) {
+	for (DataPoint& queryPoint : dataPoints) {
+		std::vector<DataPoint> knn = findKNN(queryPoint, dataPoints, k);
+
+		DataPoint centroid = calculateCentroid(knn);
+
+		queryPoint.attributes = centroid.attributes;
+
+		std::cout << "meanShifted" <<std::endl;
+
+	}
+}
+
+double randomGenerator() {
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_real_distribution<> dis(0.0, 1.0);
+
+	return dis(gen);
+}
+
+void createSubSet(std::vector<DataPoint>& dataPoints, double percentage) {
+	for (DataPoint& point : dataPoints) {
+		if (randomGenerator() < percentage) {
+			point.obsolete = true;
+		}
+	}
+}
+
+void clearObsoletes(std::vector<DataPoint>& dataPoints) {
+	for (DataPoint& point : dataPoints) {
+		point.obsolete = false;
+	}
+}
+
+bool vectorContains(const std::vector<int>& vec, int target) {
+	for (int i : vec) {
+		if (i == target) {
+			return true;
+		}
+	}
+	return false;
+}
+
+bool checkStability(std::vector<DataPoint>& subSet, std::vector<int> subPart, std::vector<int> ogPart) {
+	bool stab = true;
+
+	std::vector<int> handledClusters;
+
+	for (int i = 0; i < subSet.size(); ++i) {
+		if (!vectorContains(handledClusters, subPart[i])) {
+
+			handledClusters.push_back(subPart[i]);
+
+			//Datapoints of the cluster
+			std::vector<int> clusterDataPoints;
+			for (int j = 0; j < subSet.size(); ++j) {
+				if (subPart[j] == subPart[i]) {
+					clusterDataPoints.push_back(subSet[j].ogIndex);
+				}
+			}
+
+			//Indexes of the original datapoints
+			std::vector<int> ogClusterDataPointIndexes;
+			for (int j = 0; j < ogPart.size(); ++j) {
+				if (ogPart[j] == ogPart[subSet[i].ogIndex]) {
+					ogClusterDataPointIndexes.push_back(j);
+				}
+			}
+
+			//Check if all datapoints in the subset cluster, also belong to the same cluster in the full dataset
+			for (int ogIndex: clusterDataPoints) {
+				if (!vectorContains(ogClusterDataPointIndexes, ogIndex)) {
+					stab = false;
+					std::cout << "stab false :'(" << std::endl;
+				}
+				else std::cout << "stab happy :)" << std::endl;
+
+			}
+
+		}
+	}
+
+	return stab;
 }
 
 int main() {
@@ -801,15 +973,23 @@ int main() {
 		std::cout << "Medoid of the cluster2: " << result.first << ", cost: " << result.second << std::endl;
 	}
 
-	if(true){ //(numDimensions != -1) {
+	if(false){ //(numDimensions != -1) {
 		std::cout << "Number of dimensions in the data: " << numDimensions << std::endl;
 
 		// Read data points
 		std::vector<DataPoint> dataPoints = readDataPoints(DATA_FILENAME);
+			
+		//meanShift
+		//disabled as it would take hours
+		/*for (int i = 0; i < 1; ++i) {
+			meanShift(dataPoints, 3);
+		}
+		*/
 
 		// Generate and write centroids
 		std::vector<DataPoint> centroids = generateRandomCentroids(NUM_CENTROIDS, dataPoints);
 		std::vector<DataPoint> ogCentroids(centroids.begin(), centroids.end());
+
 
 		writeCentroidsToFile(centroids, CENTROID_FILENAME);
 
@@ -863,7 +1043,7 @@ int main() {
 		int stopCounter = 0;
 
 		//run just k-means
-		runKMeans(dataPoints, MAX_ITERATIONS, centroids);
+		bestSse1 = runKMeans(dataPoints, MAX_ITERATIONS, centroids);
 		
 		// Stop the clock
 		auto end = std::chrono::high_resolution_clock::now();
@@ -927,5 +1107,76 @@ int main() {
 		std::cout << "(Heur)Best Sum-of-Squared Errors (SSE): " << bestSse3 << std::endl;
 
 		return 0;
+	}
+
+	//subset stuff
+	if (true) {
+
+		std::cout << "Number of dimensions in the data: " << numDimensions << std::endl;
+
+		// Read data points
+		std::vector<DataPoint> dataPoints = readDataPoints(DATA_FILENAME);
+
+		double subSetSize = 0.5;
+		createSubSet(dataPoints, subSetSize);
+		std::vector <DataPoint> subSet;
+		for (int i = 0; i < dataPoints.size(); ++i) {
+			if (dataPoints[i].obsolete == false)
+			{
+				dataPoints[i].ogIndex = i;
+				subSet.push_back(dataPoints[i]);
+			}
+		}
+
+		// Generate and write centroids
+		std::vector<DataPoint> centroids = generateRandomCentroids(NUM_CENTROIDS, dataPoints);
+		std::vector<DataPoint> subSetCentroids = generateRandomCentroids(NUM_CENTROIDS, subSet);
+
+		// Initial partition and SSE using random centroids
+		std::vector<int> initialPartition = optimalPartition(dataPoints, centroids);
+		double initialSSE = calculateSSE(dataPoints, centroids, initialPartition);
+		std::cout << "Initial Total Sum-of-Squared Errors (SSE): " << initialSSE << std::endl;
+
+		std::pair<double, std::vector<int>> bestSse1 = runKMeans(dataPoints, MAX_ITERATIONS, centroids, true);
+		std::cout << "(Naive)Best Sum-of-Squared Errors (SSE): " << bestSse1.first << std::endl;
+
+
+		// Initial partition and SSE using random centroids
+		std::vector<int> subSetInitialPartition = optimalPartition(subSet, subSetCentroids);
+		double subSetInitialSSE = calculateSSE(subSet, subSetCentroids, subSetInitialPartition);
+		std::cout << "(SubSet) Initial Total Sum-of-Squared Errors (SSE): " << subSetInitialSSE << std::endl;
+
+		std::pair<double, std::vector<int>> subSetBestSse1 = runKMeans(subSet, MAX_ITERATIONS, subSetCentroids, true);
+		std::cout << "(SubSet)Best Sum-of-Squared Errors (SSE): " << subSetBestSse1.first << std::endl;
+
+		bool stab = checkStability(subSet, subSetBestSse1.second, bestSse1.second);
+		std::cout << "Stability: " << (stab ? "yes" : "no") << std::endl;
+
+		return 0;
+	}
+
+	//grid stuff
+	if (false) {
+		std::cout << "Number of dimensions in the data: " << numDimensions << std::endl;
+
+		// Read data points
+		std::vector<DataPoint> dataPoints = readDataPoints(DATA_FILENAME);
+		// Generate and write centroids
+		std::vector<DataPoint> centroids = generateRandomCentroids(NUM_CENTROIDS, dataPoints);
+		std::vector<DataPoint> ogCentroids(centroids.begin(), centroids.end());
+
+		// Initial partition and SSE using random centroids
+		std::vector<int> initialPartition = optimalPartition(dataPoints, centroids);
+		double initialSSE = calculateSSE(dataPoints, centroids, initialPartition);
+		std::cout << "Initial Total Sum-of-Squared Errors (SSE): " << initialSSE << std::endl;
+		double bestSse1 = runKMeans(dataPoints, MAX_ITERATIONS, centroids);
+		std::cout << "(Randomized)Best Sum-of-Squared Errors (SSE): " << bestSse1 << std::endl;
+
+
+		// Read data points
+		std::vector<DataPoint> ogDataPoints = readDataPoints(DATA_FILENAME);
+
+
+
 	}
 }
