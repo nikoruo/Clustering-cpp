@@ -15,13 +15,14 @@
 //and for k-means settings
 const std::string DATA_FOLDER = "data/";
 const std::string OUTPUTS_FOLDER = "outputs/";
-const std::string DATA_FILENAME = DATA_FOLDER + "s1.txt";
+const std::string DATA_FILENAME = DATA_FOLDER + "s4.txt";
 const std::string CENTROID_FILENAME = OUTPUTS_FOLDER + "centroid.txt";
 const std::string PARTITION_FILENAME = OUTPUTS_FOLDER + "partition.txt";
 const int NUM_CENTROIDS = 15;  // Number of clusters s4 = 15, unbalanced = 8
 const char SEPARATOR = ' ';
-const int MAX_ITERATIONS = 25;
-const int MAX_REPEATS = 5;
+const int MAX_ITERATIONS = 100;
+const int MAX_REPEATS = 100; //repeated kmeans, ei käytössä
+const int MAX_SWAPS = 100; // 1 kmeans on noin 13 swapsia
 
 
 // Class representing a data point
@@ -353,6 +354,7 @@ DataPoint findNearestCentroid(DataPoint& queryPoint, const std::vector<DataPoint
 		}
 	}
 
+	//tämä ei taida olla käytössä, references ei löydy mitään
 	queryPoint.minDistance = minDistance;
 
 	// Return the nearest neighbor to the query point
@@ -377,15 +379,16 @@ std::vector<int> optimalPartition(std::vector<DataPoint>& dataPoints, const std:
 		
 		//debug helper
 		//std::cout << "kierros: " << i << std::endl;
+		nearestCentroid = findNearestCentroid(dataPoint, centroids);
 
-		if (std::find(centroids.begin(), centroids.end(), dataPoint) != centroids.end()) {
+		//tätä iffittelyä ei varmaan tarvita?
+		/*if (std::find(centroids.begin(), centroids.end(), dataPoint) != centroids.end()) {
 			
 			nearestCentroid = dataPoint;
 		}
 		else {
 			// Find the nearest centroid for the current data point
-			nearestCentroid = findNearestCentroid(dataPoint, centroids);			
-		}
+		}*/
 
 		// Find the index of the nearest centroid in the centroids vector
 		auto it = std::find(centroids.begin(), centroids.end(), nearestCentroid);
@@ -578,7 +581,7 @@ std::pair<double, std::vector<int>> runKMeans(std::vector<DataPoint>& dataPoints
 		std::vector<int> newPartition = optimalPartition(dataPoints, centroids);
 		activeClusters.clear();
 
-		centroids = kMeansCentroidStep(dataPoints, newPartition, NUM_CENTROIDS);
+		centroids = kMeansCentroidStep(dataPoints, newPartition, centroids.size());
 		//Activity
 		for (int i = 0; i < newPartition.size(); ++i) {
 
@@ -619,13 +622,12 @@ std::pair<double, std::vector<int>> runKMeans(std::vector<DataPoint>& dataPoints
 }
 
 double randomSwap(std::vector<DataPoint>& dataPoints, std::vector<DataPoint>& centroids, bool heuristic) {
-	int swaps = 13;
-	int iterations = 2;
+	//int iterations = 2;
 
 	double bestSse = std::numeric_limits<double>::max();
 	DataPoint oldCentroid;
 
-	for (int i = 0; i < swaps; ++i) {
+	for (int i = 0; i < MAX_SWAPS; ++i) {
 
 		//Valitse centroid
 		int randomCentroid = select_randomly(centroids.begin(), centroids.end());
@@ -910,6 +912,68 @@ bool checkStability(std::vector<DataPoint>& subSet, std::vector<int> subPart, st
 	return stab;
 }
 
+double runSplit(std::vector<DataPoint> dataPoints, int size) {
+	std::vector<DataPoint> centroids = generateRandomCentroids(1, dataPoints);
+	std::vector<int> partition(dataPoints.size(), 0);
+	std::vector <double> sses(dataPoints.size()); //ei vielä käytössä
+	double sse = 0; //tämä ei ole käytössä, tätä voisi käyttää tentative valintaan
+
+	while (centroids.size() != size) {
+		int c = select_randomly(centroids.begin(), centroids.end());
+
+		std::vector<int> indexes;
+		std::vector<DataPoint> dpoints;
+
+		for (int i = 0; i < dataPoints.size(); ++i) {
+			if (partition[i] == c) {
+				indexes.push_back(i);
+				dpoints.push_back(dataPoints[i]);
+			}
+		}
+
+		int c1 = indexes[select_randomly(indexes.begin(), indexes.end())];
+		int c2 = c1;
+		centroids[c] = dataPoints[c1];
+
+		while (c2 == c1) {
+			c2 = indexes[select_randomly(indexes.begin(), indexes.end())];
+		}
+		centroids.push_back(dataPoints[c2]);
+
+
+		std::vector<DataPoint> newCentroids;
+		newCentroids.push_back(dataPoints[c1]);
+		newCentroids.push_back(dataPoints[c2]);
+
+		std::pair<double, std::vector<int>> result = runKMeans(dpoints, 5, newCentroids, true);
+
+		auto it = std::find(centroids.begin(), centroids.end(), dataPoints[c1]);
+		int c1index =-1;
+		
+		if (it != centroids.end()) {
+			c1index = std::distance(centroids.begin(), it);
+		}
+
+		it = std::find(centroids.begin(), centroids.end(), dataPoints[c2]);
+		int c2index =-1;
+		
+		if (it != centroids.end()) {
+			c2index = std::distance(centroids.begin(), it);
+		}
+
+		for (int i = 0; i < result.second.size(); ++i) {
+			partition[indexes[i]] = result.second[i] == 0 ? c1index : c2index;
+		}
+
+		sse = result.first;
+	}
+
+	std::pair<double, std::vector<int>> result = runKMeans(dataPoints, 50, centroids, true);
+	std::cout << "Split without global kmeans : " << calculateSSE(dataPoints, centroids, partition) << std::endl;
+
+	return result.first;
+}
+
 int main() {
 	int numDimensions = getNumDimensions(DATA_FILENAME);
 
@@ -973,7 +1037,7 @@ int main() {
 		std::cout << "Medoid of the cluster2: " << result.first << ", cost: " << result.second << std::endl;
 	}
 
-	if(false){ //(numDimensions != -1) {
+	if(true){ //(numDimensions != -1) {
 		std::cout << "Number of dimensions in the data: " << numDimensions << std::endl;
 
 		// Read data points
@@ -1052,7 +1116,7 @@ int main() {
 		std::chrono::duration<double> duration = end - start;
 
 		// Output the duration in seconds
-		std::cout << "Time taken: " << duration.count() << " seconds" << std::endl;
+		std::cout << "(Naive)Time taken: " << duration.count() << " seconds" << std::endl;
 
 		/*
 		//Repeated k-means
@@ -1086,7 +1150,7 @@ int main() {
 		duration = end - start;
 
 		// Output the duration in seconds
-		std::cout << "Time taken: " << duration.count() << " seconds" << std::endl;
+		std::cout << "(RS)Time taken: " << duration.count() << " seconds" << std::endl;
 
 		// Start the clock
 		start = std::chrono::high_resolution_clock::now();
@@ -1100,24 +1164,39 @@ int main() {
 		duration = end - start;
 
 		// Output the duration in seconds
-		std::cout << "Time taken: " << duration.count() << " seconds" << std::endl;
+		std::cout << "(Heur)Time taken: " << duration.count() << " seconds" << std::endl;
+
+		// Start the clock
+		start = std::chrono::high_resolution_clock::now();
+
+		double bestSse4 = runSplit(dataPoints, NUM_CENTROIDS);
+
+		// Stop the clock
+		end = std::chrono::high_resolution_clock::now();
+
+		// Calculate the duration
+		duration = end - start;
+
+		// Output the duration in seconds
+		std::cout << "(Split)Time taken: " << duration.count() << " seconds" << std::endl;
 
 		std::cout << "(Naive)Best Sum-of-Squared Errors (SSE): " << bestSse1 << std::endl;
 		std::cout << "(RS)Best Sum-of-Squared Errors (SSE): " << bestSse2 << std::endl;
 		std::cout << "(Heur)Best Sum-of-Squared Errors (SSE): " << bestSse3 << std::endl;
+		std::cout << "(Split)Best Sum-of-Squared Errors (SSE): " << bestSse4 << std::endl;
 
 		return 0;
 	}
 
 	//subset stuff
-	if (true) {
+	if (false) {
 
 		std::cout << "Number of dimensions in the data: " << numDimensions << std::endl;
 
 		// Read data points
 		std::vector<DataPoint> dataPoints = readDataPoints(DATA_FILENAME);
 
-		double subSetSize = 0.5;
+		double subSetSize = 0.1;
 		createSubSet(dataPoints, subSetSize);
 		std::vector <DataPoint> subSet;
 		for (int i = 0; i < dataPoints.size(); ++i) {
