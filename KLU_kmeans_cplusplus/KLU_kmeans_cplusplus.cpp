@@ -15,7 +15,7 @@
 //and for k-means settings
 const std::string DATA_FOLDER = "data/";
 const std::string OUTPUTS_FOLDER = "outputs/";
-const std::string DATA_FILENAME = DATA_FOLDER + "s4.txt";
+const std::string DATA_FILENAME = DATA_FOLDER + "s2.txt";
 const std::string CENTROID_FILENAME = OUTPUTS_FOLDER + "centroid.txt";
 const std::string PARTITION_FILENAME = OUTPUTS_FOLDER + "partition.txt";
 const int NUM_CENTROIDS = 15;  // Number of clusters s4 = 15, unbalanced = 8
@@ -968,7 +968,7 @@ double runSplit(std::vector<DataPoint> dataPoints, int size) {
 		sse = result.first;
 	}
 
-	std::pair<double, std::vector<int>> result = runKMeans(dataPoints, 50, centroids, true);
+	std::pair<double, std::vector<int>> result = runKMeans(dataPoints, MAX_ITERATIONS, centroids, true);
 	std::cout << "Split without global kmeans : " << calculateSSE(dataPoints, centroids, partition) << std::endl;
 
 	return result.first;
