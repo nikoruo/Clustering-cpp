@@ -14,7 +14,7 @@
 //Constants for file locations,
 const std::string DATA_FOLDER = "data/";
 const std::string OUTPUTS_FOLDER = "outputs/";
-const std::string DATA_FILENAME = DATA_FOLDER + "s4.txt";
+const std::string DATA_FILENAME = DATA_FOLDER + "s1.txt";
 const std::string CENTROID_FILENAME = OUTPUTS_FOLDER + "centroid.txt";
 const std::string PARTITION_FILENAME = OUTPUTS_FOLDER + "partition.txt";
 const char SEPARATOR = ' ';
@@ -736,6 +736,23 @@ std::vector<DataPoint> findKNN(DataPoint queryPoint, const std::vector<DataPoint
 		distancesAndIndices.emplace_back(distance, index);
 	}
 
+	std::vector<std::pair<double, int>> kSmallest(3);
+
+	//Ajattelin, ett‰ t‰m‰ saattaisi tehostaa koodia N log N --> N
+	//mutta ajo kest‰‰ yh‰ ‰‰rimm‰isen kauan
+	/*for (int i = 0; i < distancesAndIndices.size(); i++) {
+		if (i>k) {
+			if (distancesAndIndices[i].first < kSmallest[k-1].first) {
+				kSmallest[k-1] = distancesAndIndices[i];
+				std::sort(kSmallest.begin(), kSmallest.end());
+			}
+		}
+		else if (i < k) {
+			kSmallest.push_back(distancesAndIndices[i]);
+		}
+		else if (i == k) std::sort(kSmallest.begin(), kSmallest.end());
+	}*/
+
 	std::sort(distancesAndIndices.begin(), distancesAndIndices.end());
 
 	std::vector<DataPoint> kNN;
@@ -798,10 +815,10 @@ bool vectorContains(const std::vector<int>& vec, int target) {
 	return false;
 }
 
-//Function to check stability (for sub sets)
+//Function to check stability (for sub set exercises)
 bool checkStability(std::vector<DataPoint>& subSet, std::vector<int> subPart, std::vector<int> ogPart) {
-	bool stab = true;
 	std::vector<int> handledClusters;
+	bool stab = true;
 
 	for (int i = 0; i < subSet.size(); ++i) {
 		if (!vectorContains(handledClusters, subPart[i])) {
@@ -820,19 +837,24 @@ bool checkStability(std::vector<DataPoint>& subSet, std::vector<int> subPart, st
 			std::vector<int> ogClusterDataPointIndexes;
 			for (int j = 0; j < ogPart.size(); ++j) {
 				if (ogPart[j] == ogPart[subSet[i].ogIndex]) {
+
 					ogClusterDataPointIndexes.push_back(j);
 				}
 			}
 
-			//Check if all datapoints in the subset cluster, also belong to the same cluster in the full dataset
+			int happy = 0; //shares the same cluster in both sets
+			int unhappy = 0; //does not share the same cluster in both sets
+
+			//Check if all datapoints in the sub set cluster, also belong to the same cluster in the full set
 			for (int ogIndex: clusterDataPoints) {
 				if (!vectorContains(ogClusterDataPointIndexes, ogIndex)) {
 					stab = false;
-					std::cout << "stab false :'(" << std::endl;
+					unhappy++;
 				}
-				else std::cout << "stab happy :)" << std::endl;
-
+				else happy++;
 			}
+
+			std::cout << "Sub cluster: " << subPart[i] << " --> " << "Happy points: " << happy << " & " << "Unhappy points: " << unhappy << std::endl;
 		}
 	}
 
@@ -967,7 +989,7 @@ int main() {
 	}
 
 	//kmeans, randomswap, deterministic swap, split, etc
-	if(true){
+	if(false){
 		std::cout << "Number of dimensions in the data: " << numDimensions << std::endl;
 
 		std::vector<DataPoint> dataPoints = readDataPoints(DATA_FILENAME);
@@ -976,8 +998,7 @@ int main() {
 		//meanShift --> disabled as it would take hours
 		/*for (int i = 0; i < 1; ++i) {
 			meanShift(dataPoints, 3);
-		}
-		*/
+		}*/
 
 		// Generate and write centroids
 		// we also initialize ogCentroids here, so we can compare k-means and random swap from the same starting point
@@ -1101,16 +1122,14 @@ int main() {
 	}
 
 	//subset stuff
-	if (false) {
-
+	if (true) {
 		std::cout << "Number of dimensions in the data: " << numDimensions << std::endl;
 
-		// Read data points
 		std::vector<DataPoint> dataPoints = readDataPoints(DATA_FILENAME);
-
-		double subSetSize = 0.1;
-		createSubSet(dataPoints, subSetSize);
 		std::vector <DataPoint> subSet;
+		double obsoletes = 0.60; //subset size = 1 - obsoletes = 1 - 0,6 = 40%
+
+		createSubSet(dataPoints, obsoletes);
 		for (int i = 0; i < dataPoints.size(); ++i) {
 			if (dataPoints[i].obsolete == false)
 			{
@@ -1119,18 +1138,19 @@ int main() {
 			}
 		}
 
-		// Generate and write centroids
+		// FullSet
 		std::vector<DataPoint> centroids = generateRandomCentroids(NUM_CENTROIDS, dataPoints);
-		std::vector<DataPoint> subSetCentroids = generateRandomCentroids(NUM_CENTROIDS, subSet);
 
-		// Initial partition and SSE using random centroids
+		// Initial partition and SSE
 		std::vector<int> initialPartition = optimalPartition(dataPoints, centroids);
 		double initialSSE = calculateSSE(dataPoints, centroids, initialPartition);
 		std::cout << "Initial Total Sum-of-Squared Errors (SSE): " << initialSSE << std::endl;
 
 		std::pair<double, std::vector<int>> bestSse1 = runKMeans(dataPoints, MAX_ITERATIONS, centroids, true);
-		std::cout << "(K-means)Best Sum-of-Squared Errors (SSE): " << bestSse1.first << std::endl;
+		std::cout << "(FullSet)Best Sum-of-Squared Errors (SSE): " << bestSse1.first << std::endl;
 
+		//SubSet
+		std::vector<DataPoint> subSetCentroids = generateRandomCentroids(NUM_CENTROIDS, subSet);
 
 		// Initial partition and SSE using random centroids
 		std::vector<int> subSetInitialPartition = optimalPartition(subSet, subSetCentroids);
@@ -1140,6 +1160,7 @@ int main() {
 		std::pair<double, std::vector<int>> subSetBestSse1 = runKMeans(subSet, MAX_ITERATIONS, subSetCentroids, true);
 		std::cout << "(SubSet)Best Sum-of-Squared Errors (SSE): " << subSetBestSse1.first << std::endl;
 
+		//Check for stability = are points that form a cluster in the sub set also in the same cluster in the full set?
 		bool stab = checkStability(subSet, subSetBestSse1.second, bestSse1.second);
 		std::cout << "Stability: " << (stab ? "yes" : "no") << std::endl;
 
