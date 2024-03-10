@@ -12,26 +12,26 @@
 #include <chrono>
 
 //Constants for file locations,
-//and for k-means settings
 const std::string DATA_FOLDER = "data/";
 const std::string OUTPUTS_FOLDER = "outputs/";
-const std::string DATA_FILENAME = DATA_FOLDER + "s2.txt";
+const std::string DATA_FILENAME = DATA_FOLDER + "s4.txt";
 const std::string CENTROID_FILENAME = OUTPUTS_FOLDER + "centroid.txt";
 const std::string PARTITION_FILENAME = OUTPUTS_FOLDER + "partition.txt";
-const int NUM_CENTROIDS = 15;  // Number of clusters s4 = 15, unbalanced = 8
 const char SEPARATOR = ' ';
-const int MAX_ITERATIONS = 100;
-const int MAX_REPEATS = 100; //repeated kmeans, ei käytössä
+
+//and for clustering
+const int NUM_CENTROIDS = 15;  // klustereiden lukumäärä: s4 = 15, unbalanced = 8
+const int MAX_ITERATIONS = 100; // k-means rajoitus
+const int MAX_REPEATS = 25; // repeated kmeans
 const int MAX_SWAPS = 100; // 1 kmeans on noin 13 swapsia
 
 
-// Class representing a data point
 class DataPoint {
 public:
-    // Vector to hold the attributes of the data point
     std::vector<int> attributes;
 
     // Minimum distance from this data point to a centroid
+	// ei käytössä
     double minDistance = std::numeric_limits<double>::max();
 
 	//For subsets
@@ -40,7 +40,6 @@ public:
 
     // Default constructor
 	DataPoint() {};
-
     // Constructor to initialize the data point with given attributes
 	explicit DataPoint(const std::vector<int>& attributes) : attributes(attributes) {};
 	
@@ -49,7 +48,7 @@ public:
         return attributes == other.attributes;
     }
 
-	// Overload equality operator for attribute comparison
+	// Overload inequality operator for attribute comparison
 	bool operator!=(const DataPoint& other) const {
 		return attributes != other.attributes;
 	}
@@ -88,15 +87,14 @@ void handleFileError(const std::string& filename) {
 
 // Function to read data points from a file
 std::vector<DataPoint> readDataPoints(const std::string& filename) {
-	// Open the file for reading, if the file failed to open, handle the error
 	std::ifstream file(filename);
 	if (!file.is_open()) {
 		handleFileError(filename);
 	}
 
-	// Create a vector to store the data points
 	std::vector<DataPoint> dataPoints;
-	// Create a string to store each line of the file
+
+	// a string to store each line of the file
 	std::string line;
 
 	// Read each line of the file
@@ -117,13 +115,12 @@ std::vector<DataPoint> readDataPoints(const std::string& filename) {
 	}
 
 	file.close();
-	// Return the vector of data points
+
 	return dataPoints;
 }
 
 // Function to get the number of dimensions in the data
 int getNumDimensions(const std::string& filename) {
-	// Open the file for reading, if the file failed to open, handle the error
 	std::ifstream file(filename);
 	if (!file.is_open()) {
 		handleFileError(filename);
@@ -135,7 +132,6 @@ int getNumDimensions(const std::string& filename) {
 
 	// Check if the line is empty
 	if (line.empty()) {
-		// Print an error message and exit if the file is empty
 		std::cerr << "Error: File '" << filename << "' is empty\n";
 		std::exit(EXIT_FAILURE);
 	}
@@ -149,18 +145,21 @@ int getNumDimensions(const std::string& filename) {
 	return dimensions;
 }
 
+// Function to chooses random data points to be centroids
 std::vector<DataPoint> generateRandomCentroids(int numCentroids, const std::vector<DataPoint>& dataPoints) {
 	std::srand(static_cast<unsigned int>(std::time(nullptr)));
 	std::vector<DataPoint> dataPointsShuffled(dataPoints.begin(), dataPoints.end());
 	std::random_shuffle(dataPointsShuffled.begin(), dataPointsShuffled.end());
-
+	
 	std::vector<DataPoint> centroids(numCentroids);
+
 	for (int i = 0; i < numCentroids; ++i) {
 		centroids[i] = dataPointsShuffled[i];
 	}
 	return centroids;
 }
 
+// Function to write the centroids to a file
 void writeCentroidsToFile(const std::string& filename, const std::vector<DataPoint>& centroids) {
 	std::ofstream centroidFile(filename);
 	if (!centroidFile.is_open()) {
@@ -178,7 +177,7 @@ void writeCentroidsToFile(const std::string& filename, const std::vector<DataPoi
 	std::cout << "Centroid file created successfully: " << filename << std::endl;
 }
 
-//HUOM! numClusters + 1, tämä saattaa nyt aiheuttaa ongelmia
+//Function to generate random partition (alkuviikkojen tehtäviä)
 std::vector<int> generateRandomPartitions(int numDataPoints, int numClusters) {
 	std::srand(static_cast<unsigned int>(std::time(nullptr)));
 	std::vector<int> partitions(numDataPoints);
@@ -190,7 +189,6 @@ std::vector<int> generateRandomPartitions(int numDataPoints, int numClusters) {
 
 // Function to write partition to a text file
 void writePartitionToFile(const std::vector<int>& partition, const std::string& fileName) {
-	// Open the file for reading, if the file failed to open, handle the error
 	std::ofstream outFile(fileName);
 	if (!outFile.is_open()) {
 		handleFileError(fileName);
@@ -206,46 +204,22 @@ void writePartitionToFile(const std::vector<int>& partition, const std::string& 
 	std::cout << "Optimal partition written to OptimalPartition.txt\n";
 }
 
-// Function to calculate SSE (Sum of Squared Errors) of a random centroid and all datapoints
+// Function to calculate SSE (Sum of Squared Errors) of a random centroid and ALL datapoints
 double calculateRandomSSE(const std::vector<DataPoint>& dataPoints, const std::vector<DataPoint>& centroids) {
 	
-	// Select a random centroid
 	int randomCentroidIndex = select_randomly(centroids.begin(), centroids.end());
 	const DataPoint& chosenCentroid = centroids[randomCentroidIndex];
 
 	double sse = 0.0;
 
-	// Calculate SSE by summing squared distances between data points and the chosen centroid
 	for (const DataPoint& dataPoint : dataPoints) {
 		sse += calculateEuclideanDistance(dataPoint, chosenCentroid);
 	}
 
-	return sse;  // Return the calculated SSE
+	return sse;
 }
 
-/*
-* this is not used atm
-* can be used to calcule SSE inside a cluster
-double calculateSSE(const std::vector<DataPoint>& dataPoints, const std::vector<DataPoint>& centroids) {
-	double sse = 0.0;
-
-	for (const DataPoint& dataPoint : dataPoints) {
-		double currentDistance = std::numeric_limits<int>::max();
-
-		for (const DataPoint& centroid : centroids) {
-			double newDistance = calculateEuclideanDistance(dataPoint, centroid);
-			if (newDistance < currentDistance) {
-				currentDistance = newDistance;
-			}
-		}
-
-		sse += currentDistance;
-	}
-
-	return sse;
-}*/
-
-// Function to calculate total sum of squared errors (SSE)
+//Function to calculate the sum of squared errors (SSE)
 double calculateSSE(const std::vector<DataPoint>& dataPoints, const std::vector<DataPoint>& centroids, const std::vector<int>& partition) {
 	if (dataPoints.size() != partition.size()) {
 		std::cerr << "Error: Data points and partition size mismatch\n";
@@ -255,13 +229,11 @@ double calculateSSE(const std::vector<DataPoint>& dataPoints, const std::vector<
 	double sse = 0.0;
 
 	for (int i = 0; i < partition.size(); ++i) {
-		// Find the index of the centroid assigned to the current data point
-		int assignedCentroidIndex = partition[i];
+		int cIndex = partition[i];
 
-		// Ensure the assigned centroid index is valid
-		if (assignedCentroidIndex >= 0 && assignedCentroidIndex < static_cast<int>(centroids.size())) {
-			// Calculate the squared distance between the data point and its assigned centroid
-			sse += calculateEuclideanDistance(dataPoints[i], centroids[assignedCentroidIndex]);
+		if (cIndex >= 0 && cIndex < static_cast<int>(centroids.size())) {
+			// SSE between the data point and its assigned centroid
+			sse += calculateEuclideanDistance(dataPoints[i], centroids[cIndex]);
 		}
 		else {
 			std::cerr << "Error: Invalid centroid index in partition\n";
@@ -291,32 +263,24 @@ void calculateAndReportAverageDistance(const std::vector<DataPoint>& dataPoints)
 		std::cout << "Average pairwise distance: " << averageDistance << std::endl;
 	}
 	else {
-		std::cerr << "Error: No pairwise distances calculated (not enough data points)\n";
+		std::cerr << "Error: No pairwise distances calculated\n";
 	}
 }
 
 // Function to find the nearest neighbor of a data point within a set of data
+// Käytetään vain findNearestNeighborExample funktiossa
+// Mikäli tämän ottaa käyttöön muualla, niin minDistancen päivitys vaatii tarkastelua
 DataPoint findNearestNeighbor(DataPoint& queryPoint, const std::vector<DataPoint>& targetPoints) {
-	// Throw an error if the set of data points is empty
 	if (targetPoints.empty()) {
 		throw std::runtime_error("Error: Cannot find nearest neighbor in an empty set of data");
 	}
 
-	// Initialize variables to store the minimum distance and the nearest neighbor
-	double minDistance = std::numeric_limits<double>::max();//queryPoint.minDistance != -1 ? queryPoint.minDistance : -1;
-	//HUOM!
-	// EDELLINEN ALUSTETTIIN AINA MAX, JOTEN SEN TAKIA SE EI VOINUT VALITA, 
-	// ETTÄ JATKETAAN SAMALLA CENTROIDILLA
-	// onko edellinen itseasiassa bugi vai ei?
+	double minDistance = std::numeric_limits<double>::max();
 	DataPoint nearestNeighbor = queryPoint;
 
-	// Iterate over each data point in the set
 	for (const DataPoint& dataPoint : targetPoints) {
-		// Compare the attributes of the query point and the current data point
 		if (queryPoint != dataPoint) {
-			// Calculate the distance between the query point and the current data point
 			double distance = calculateEuclideanDistance(queryPoint, dataPoint);
-			// Update the minimum distance and the nearest neighbor if the current data point is closer
 			if (distance < minDistance || minDistance == -1) {
 				minDistance = distance;
 				nearestNeighbor = dataPoint;
@@ -324,24 +288,19 @@ DataPoint findNearestNeighbor(DataPoint& queryPoint, const std::vector<DataPoint
 		}
 	}
 
-	// Return the nearest neighbor to the query point
 	return nearestNeighbor;
 }
 
 // Function to find the nearest centroid of a data point
 DataPoint findNearestCentroid(DataPoint& queryPoint, const std::vector<DataPoint>& clusterPoints) {
-	// Throw an error if the set of data points is empty
 	if (clusterPoints.empty()) {
 		throw std::runtime_error("Error: Cannot find nearest centroid in an empty set of data");
 	}
 
 	int nearestCentroid = -1;
-
 	std::vector<double> distances(clusterPoints.size());
 
-	// Iterate over each data point in the set
 	for (size_t i = 0; i < clusterPoints.size(); ++i) {
-		// Calculate the distance between the query point and the current data point
 		distances[i] = calculateEuclideanDistance(queryPoint, clusterPoints[i]);	
 	}
 
@@ -354,22 +313,19 @@ DataPoint findNearestCentroid(DataPoint& queryPoint, const std::vector<DataPoint
 		}
 	}
 
-	//tämä ei taida olla käytössä, references ei löydy mitään
+	//Tämä ei tällä hetkellä käytössä, voitaisiin hyödyntää Fast K-means
 	queryPoint.minDistance = minDistance;
 
-	// Return the nearest neighbor to the query point
 	return clusterPoints[nearestCentroid];
 }
 
 // Function for optimal partitioning
 std::vector<int> optimalPartition(std::vector<DataPoint>& dataPoints, const std::vector<DataPoint>& centroids) {
-	// Check if either dataPoints or centroids are empty
 	if (dataPoints.empty() || centroids.empty()) {
 		std::cerr << "Error: Cannot perform optimal partition with empty data or centroids\n";
 		std::exit(EXIT_FAILURE);
 	}
 
-	// Create a vector to store the partition for each data point, initialized to -1
 	std::vector<int> partition(dataPoints.size(), -1);
 
 	// Iterate through each data point to find its nearest centroid
@@ -379,75 +335,68 @@ std::vector<int> optimalPartition(std::vector<DataPoint>& dataPoints, const std:
 		
 		//debug helper
 		//std::cout << "kierros: " << i << std::endl;
+
 		nearestCentroid = findNearestCentroid(dataPoint, centroids);
 
 		//tätä iffittelyä ei varmaan tarvita?
 		/*if (std::find(centroids.begin(), centroids.end(), dataPoint) != centroids.end()) {
-			
+
 			nearestCentroid = dataPoint;
 		}
 		else {
 			// Find the nearest centroid for the current data point
 		}*/
 
-		// Find the index of the nearest centroid in the centroids vector
+		// Find the index of the nearest centroid
 		auto it = std::find(centroids.begin(), centroids.end(), nearestCentroid);
 		if (it != centroids.end()) {
-			// Update the partition with the index of the nearest centroid
+			// And then update the partition with the index of the nearest centroid
 			int centroidIndex = std::distance(centroids.begin(), it);
 			partition[i] = centroidIndex;
 		}
 	}
 
-	// Return the partition vector
 	return partition;
 }
 
+// HUOM!BUG!
+// random swap + esimerkiksi unbalanced data set sylkee tänne välillä tyhjiä vektoreita
+// ja koodi kaatuu siten heti ensimmäiseen iffiin. Tämä vaatii gradun tapauksessa tarkastelua
 // Calculate the centroid of a set of data points
 DataPoint calculateCentroid(const std::vector<DataPoint>& dataPoints) {
-	// Check if the set of data points is empty
-	
-	//TODO
-	//KOODI KAATUU NYT TÄHÄN
-	//TÄNNE SYÖTETÄÄN TYHJÄ VECTORI
 	if (dataPoints.size() == 0) {
 		throw std::runtime_error("Cannot calculate centroid for an empty set of data points");
 	}
 
 	DataPoint centroid;
-	// Get the number of dimensions
 	size_t numDimensions = dataPoints.front().attributes.size();
 
 	// Loop through each dimension
 	for (size_t dim = 0; dim < numDimensions; ++dim) {
 		double sum = 0.0;
 
-		// Calculate the sum of all data points in the current dimension
+		// Calculate the sum of the current dimension
 		for (const DataPoint& dataPoint : dataPoints) {
 			sum += dataPoint.attributes[dim];
 		}
 
-		// Calculate the average for the current dimension and add it to the centroid
+		// Calculate the average for the current dimension and add it to centroid
 		centroid.attributes.push_back(sum / dataPoints.size());
 	}
 
-	// Return the centroid
 	return centroid;
 }
 
-// Implementation of the writeCentroidsToFile function
+// Function to write centroids to a file
+// ensimmäisten viikkojen juttuja
 void writeCentroidsToFile(const std::vector<DataPoint>& centroids, const std::string& fileName) {
-	// Open the file for reading, if the file failed to open, handle the error
 	std::ofstream outFile(fileName);
 	if (!outFile.is_open()) {
 		handleFileError(fileName);
 	}
 
-	// Iterate through each centroid
 	for (size_t i = 0; i < centroids.size(); ++i) {
-		// Write the centroid label to the file
 		outFile << "Centroid for Cluster " << i + 1 << ":\n";
-		// Iterate through each dimension of the centroid and write it to the file
 		for (size_t dim = 0; dim < centroids[i].attributes.size(); ++dim) {
 			outFile << centroids[i].attributes[dim] << " ";
 		}
@@ -461,24 +410,11 @@ void writeCentroidsToFile(const std::vector<DataPoint>& centroids, const std::st
 // Function to perform the centroid step in k-means
 std::vector<DataPoint> kMeansCentroidStep(const std::vector<DataPoint>& dataPoints, const std::vector<int>& partition, int numClusters) {
 	std::vector<DataPoint> newCentroids(numClusters);
-
-	// Group data points by cluster
 	std::vector<std::vector<DataPoint>> clusters(numClusters);
 
-	// Initialize clusters with empty vectors
 	for (int i = 0; i < numClusters; ++i) {
 		clusters[i] = std::vector<DataPoint>();
 	}
-
-	//HUOM
-	//Koodi kaatuu nyt tähän, sillä parition vectorissa löytyy rivejä, joilla on arvona -1
-	//
-	// BUG1 (korjattu)
-	// partitionit alustetaan arvolle -1
-	//eli nyt ongelmana on se, että data pointit, jotka valitaan centroideiksi jäävät arvoille -1 (korjattu)
-	//
-	// BUG2
-	//ongelma saattaa olla nyt siinä, että ensin valitaan centroidit randomisti -> minDistance = 0 -> minDistance != -1 -> nearestNeighbor ei päivity -> jää arvoon -1
 
 	for (int i = 0; i < dataPoints.size(); ++i) {
 		int clusterLabel = partition[i];
@@ -486,8 +422,8 @@ std::vector<DataPoint> kMeansCentroidStep(const std::vector<DataPoint>& dataPoin
 	}
 
 	//BUG
-	//tänne tulee nyt clustereita joissa on 0 datapointtia, ja homma räjähtää
-	// Calculate centroid for each cluster using the calculateCentroid function
+	// RS+unbalanced --> tänne tulee clustereita joissa on 0 datapointtia
+	// koodi kaatuu calculateCentroid()
 	for (int clusterLabel = 0; clusterLabel < numClusters; ++clusterLabel) {
 		newCentroids[clusterLabel] = calculateCentroid(clusters[clusterLabel]);
 	}
@@ -495,15 +431,14 @@ std::vector<DataPoint> kMeansCentroidStep(const std::vector<DataPoint>& dataPoin
 	return newCentroids;
 }
 
+//Function to find a nearest neighbor of a randomly chosen data point
+//Ensimmäisten viikkojen juttuja
 void findNearestNeighborExample(const std::vector<DataPoint>& dataPoints) {
-	// Select a random data point from the dataset
 	DataPoint firstDataPoint = dataPoints[select_randomly(dataPoints.begin(), dataPoints.end())];
 
-	// Find the nearest neighbor of the selected data point
 	DataPoint nearestNeighbor = findNearestNeighbor(firstDataPoint, dataPoints);
 
-	// Print the original data point and the nearest neighbor
-	std::cout << "Nearest neighbor of the first data point:\n";
+	std::cout << "Nearest neighbor of the first data point:" << std::endl;
 	std::cout << "Original Data Point: ";
 	for (int value : firstDataPoint.attributes) {
 		std::cout << value << " ";
@@ -515,8 +450,10 @@ void findNearestNeighborExample(const std::vector<DataPoint>& dataPoints) {
 	std::cout << "\n";
 }
 
+//Function to run the k-means, returns SSE
+// main() pitäisi refactoroida siten, että tämän voi poistaa
+// tämä oli ensimmäinen versio runKmeans() funktiosta, joka ei palauta partitionia
 double runKMeans(std::vector<DataPoint>& dataPoints, int iterations, std::vector<DataPoint>& centroids) {
-	std::vector<double> bestCentroids;
 	double bestSse = std::numeric_limits<double>::max();
 	int stopCounter = 0;
 	double previousSSE = std::numeric_limits<double>::max();
@@ -524,12 +461,12 @@ double runKMeans(std::vector<DataPoint>& dataPoints, int iterations, std::vector
 	std::vector<int> activeClusters;
 
 	for (int iteration = 0; iteration < iterations; ++iteration) {
-		// Calculate new centroids and update the partition
 		std::vector<int> newPartition = optimalPartition(dataPoints, centroids);
 		activeClusters.clear();
 
 		centroids = kMeansCentroidStep(dataPoints, newPartition, NUM_CENTROIDS);
-		//Activity
+
+		//Activity = if previous kluster is not the same as the new cluster
 		for (int i = 0; i < newPartition.size(); ++i) {
 
 			if (newPartition[i] != previousPartition[i]) {
@@ -544,9 +481,8 @@ double runKMeans(std::vector<DataPoint>& dataPoints, int iterations, std::vector
 			}
 		}
 
-		// Calculate and report sum-of-squared errors
 		double sse = calculateSSE(dataPoints, centroids, newPartition);
-		std::cout << "Total SSE after iteration " << iteration + 1 << ": " << sse << "and activity: " << activeClusters.size() << std::endl;
+		std::cout << "(runKmeans)Total SSE after iteration " << iteration + 1 << ": " << sse << "and activity: " << activeClusters.size() << std::endl;
 
 		if (sse < bestSse) {
 			bestSse = sse;
@@ -556,7 +492,7 @@ double runKMeans(std::vector<DataPoint>& dataPoints, int iterations, std::vector
 		}
 
 		// For now, we use stopCounter
-		// Optionally, check for convergence or other stopping criteria		
+		// Optionally, check for convergence or other stopping criteria
 		if (stopCounter == 3) {
 			break;
 		}
@@ -568,8 +504,8 @@ double runKMeans(std::vector<DataPoint>& dataPoints, int iterations, std::vector
 	return bestSse;
 }
 
+//Function to run the k-means, returns SSE and partition
 std::pair<double, std::vector<int>> runKMeans(std::vector<DataPoint>& dataPoints, int iterations, std::vector<DataPoint>& centroids, bool foo) {
-	std::vector<double> bestCentroids;
 	double bestSse = std::numeric_limits<double>::max();
 	int stopCounter = 0;
 	double previousSSE = std::numeric_limits<double>::max();
@@ -577,12 +513,11 @@ std::pair<double, std::vector<int>> runKMeans(std::vector<DataPoint>& dataPoints
 	std::vector<int> activeClusters;
 
 	for (int iteration = 0; iteration < iterations; ++iteration) {
-		// Calculate new centroids and update the partition
 		std::vector<int> newPartition = optimalPartition(dataPoints, centroids);
 		activeClusters.clear();
 
 		centroids = kMeansCentroidStep(dataPoints, newPartition, centroids.size());
-		//Activity
+		//Activity = if previous kluster is not the same as the new cluster
 		for (int i = 0; i < newPartition.size(); ++i) {
 
 			if (newPartition[i] != previousPartition[i]) {
@@ -599,7 +534,7 @@ std::pair<double, std::vector<int>> runKMeans(std::vector<DataPoint>& dataPoints
 
 		// Calculate and report sum-of-squared errors
 		double sse = calculateSSE(dataPoints, centroids, newPartition);
-		std::cout << "Total SSE after iteration " << iteration + 1 << ": " << sse << "and activity: " << activeClusters.size() << std::endl;
+		std::cout << "(runKMeans)Total SSE after iteration " << iteration + 1 << ": " << sse << "and activity: " << activeClusters.size() << std::endl;
 
 		if (sse < bestSse) {
 			bestSse = sse;
@@ -621,43 +556,36 @@ std::pair<double, std::vector<int>> runKMeans(std::vector<DataPoint>& dataPoints
 	return std::make_pair(bestSse, previousPartition);
 }
 
-double randomSwap(std::vector<DataPoint>& dataPoints, std::vector<DataPoint>& centroids, bool heuristic) {
-	//int iterations = 2;
-
+//Function for random swap
+// Deterministic = swaps the centroid to the furthest data point from it
+double randomSwap(std::vector<DataPoint>& dataPoints, std::vector<DataPoint>& centroids, bool deterministic) {
 	double bestSse = std::numeric_limits<double>::max();
 	DataPoint oldCentroid;
 
 	for (int i = 0; i < MAX_SWAPS; ++i) {
-
-		//Valitse centroid
-		int randomCentroid = select_randomly(centroids.begin(), centroids.end());
-
-		oldCentroid = centroids[randomCentroid];
-
 		int randomDataPoint = -1;
 		double best = -1;
 
-		if (heuristic) {
+		int randomCentroid = select_randomly(centroids.begin(), centroids.end());
+		oldCentroid = centroids[randomCentroid];
+
+		if (deterministic) { //deterministic swap
 			for (int j = 0; j < dataPoints.size();++j) {
 				if (calculateEuclideanDistance(oldCentroid, dataPoints[j]) > best || j == 0) {
 					randomDataPoint = j;
 				}
 			}
 		}
-		else {
-			//Valitse datapiste
+		else { //random swap
 			randomDataPoint = select_randomly(dataPoints.begin(), dataPoints.end());
 		}
 
-		//Suorita vaihto
 		centroids[randomCentroid] = dataPoints[randomDataPoint];
 
-
-		//Run k-means twice	
 		double sse = runKMeans(dataPoints, 2, centroids);
 
 		//If SSE improves, we keep the change
-		//if not, then we reverse the swap
+		//if not, we reverse the swap
 		if (sse < bestSse) {
 			bestSse = sse;
 		}
@@ -669,7 +597,7 @@ double randomSwap(std::vector<DataPoint>& dataPoints, std::vector<DataPoint>& ce
 	return bestSse;
 }
 
-//Levenshtein's edit distance
+//Function to calculate the Levenshtein's edit distance
 static int editDistance(const std::string& word1, const std::string& word2) {
 	int m = word1.size();
 	int n = word2.size();
@@ -704,15 +632,14 @@ static int editDistance(const std::string& word1, const std::string& word2) {
 	return dp[m][n];
 }
 
-// Function to calculate pairwise distances between strings in two vectors
+// Function to calculate the pairwise distances between strings in two vectors
 static std::vector<std::vector<int>> pairwiseDistances(const std::vector<std::string>& vec1, const std::vector<std::string>& vec2) {
 	int n1 = vec1.size();
 	int n2 = vec2.size();
 
-	// Create a 2D vector to store pairwise distances
+	// 2D vector
 	std::vector<std::vector<int>> distances(n1, std::vector<int>(n2, 0));
 
-	// Calculate distances for all pairs of strings
 	for (int i = 0; i < n1; ++i) {
 		for (int j = 0; j < n2; ++j) {
 			distances[i][j] = editDistance(vec1[i], vec2[j]);
@@ -722,19 +649,15 @@ static std::vector<std::vector<int>> pairwiseDistances(const std::vector<std::st
 	return distances;
 }
 
-// Function to calculate pairwise distances within a cluster
+// Function to calculate pairwise distances within a vector
 std::vector<std::vector<int>> pairwiseDistances(const std::vector<std::string>& cluster) {
 	std::vector<std::vector<int>> distances(cluster.size(), std::vector<int>(cluster.size(), 0));
 
-	// Calculate pairwise distances between each pair of strings in the cluster
 	for (size_t i = 0; i < cluster.size(); ++i) {
 		for (size_t j = i + 1; j < cluster.size(); ++j) {
-			// Calculate edit distance between strings at indices i and j
 			int distance = editDistance(cluster[i], cluster[j]);
 
-			// Store the calculated distance in both (i, j) and (j, i) positions
 			distances[i][j] = distance;
-			distances[j][i] = distance;
 		}
 	}
 
@@ -765,7 +688,7 @@ std::pair<std::string, int> findMedoid(const std::vector<std::string>& cluster) 
 	return std::make_pair(medoid, minSumDistance);
 }
 
-//Euclidian distance between two centroids multiplied by their sizes
+//Function to calculate Euclidian distance between two centroids multiplied by their sizes
 double centroidDistance(const DataPoint& centroid1, const int size1, const DataPoint& centroid2, const int size2) {
 	double distance = calculateEuclideanDistance(centroid1, centroid2);
 
@@ -774,20 +697,18 @@ double centroidDistance(const DataPoint& centroid1, const int size1, const DataP
 	return distance;
 }
 
-//Pairwise distances between two clusters
+//Function to calculate Pairwise distances between two clusters
 double calculatePairwiseDistancesOfClusters(const std::vector<DataPoint>& dataPoints, const std::vector<int>& partition, const int c1, const int c2) {
 	double sumDistances = 0.0;
 	std::vector<DataPoint> cluster1;
 	std::vector<DataPoint> cluster2;
 
 
-	// Initialize the clusters
 	for (size_t i = 0; i < partition.size(); i++) {
 		if (partition[i] == c1) cluster1.push_back(dataPoints[i]);
 		else if (partition[i] == c2) cluster2.push_back(dataPoints[i]);
 	}
 
-	// Calculate pairwise distances between all data points in the two clusters
 	for (const DataPoint& point1 : cluster1) {
 		for (const DataPoint& point2 : cluster2) {
 			double distance = calculateEuclideanDistance(point1, point2);
@@ -800,7 +721,6 @@ double calculatePairwiseDistancesOfClusters(const std::vector<DataPoint>& dataPo
 
 // Function to find kNN
 std::vector<DataPoint> findKNN(DataPoint queryPoint, const std::vector<DataPoint>& targetPoints, int k) {
-	// Throw an error if the set of data points is empty
 	if (targetPoints.empty()) {
 		throw std::runtime_error("Error: Cannot find nearest neighbors in an empty set of data");
 	}
@@ -826,6 +746,7 @@ std::vector<DataPoint> findKNN(DataPoint queryPoint, const std::vector<DataPoint
 	return kNN;
 }
 
+//Function for mean-shift
 void meanShift(std::vector<DataPoint>& dataPoints, int k) {
 	for (DataPoint& queryPoint : dataPoints) {
 		std::vector<DataPoint> knn = findKNN(queryPoint, dataPoints, k);
@@ -835,10 +756,11 @@ void meanShift(std::vector<DataPoint>& dataPoints, int k) {
 		queryPoint.attributes = centroid.attributes;
 
 		std::cout << "meanShifted" <<std::endl;
-
 	}
 }
 
+//random generator
+// number from 0 to 1
 double randomGenerator() {
 	std::random_device rd;
 	std::mt19937 gen(rd());
@@ -847,6 +769,8 @@ double randomGenerator() {
 	return dis(gen);
 }
 
+//Helper function for creating the sub set
+//makes % of the data points as "obsolete"
 void createSubSet(std::vector<DataPoint>& dataPoints, double percentage) {
 	for (DataPoint& point : dataPoints) {
 		if (randomGenerator() < percentage) {
@@ -855,12 +779,16 @@ void createSubSet(std::vector<DataPoint>& dataPoints, double percentage) {
 	}
 }
 
+//Helper function for sub sets
+// clears the "obsolete" status
+//ei käytössä tällä hetkellä
 void clearObsoletes(std::vector<DataPoint>& dataPoints) {
 	for (DataPoint& point : dataPoints) {
 		point.obsolete = false;
 	}
 }
 
+//Helper function for checking stability
 bool vectorContains(const std::vector<int>& vec, int target) {
 	for (int i : vec) {
 		if (i == target) {
@@ -870,9 +798,9 @@ bool vectorContains(const std::vector<int>& vec, int target) {
 	return false;
 }
 
+//Function to check stability (for sub sets)
 bool checkStability(std::vector<DataPoint>& subSet, std::vector<int> subPart, std::vector<int> ogPart) {
 	bool stab = true;
-
 	std::vector<int> handledClusters;
 
 	for (int i = 0; i < subSet.size(); ++i) {
@@ -905,18 +833,18 @@ bool checkStability(std::vector<DataPoint>& subSet, std::vector<int> subPart, st
 				else std::cout << "stab happy :)" << std::endl;
 
 			}
-
 		}
 	}
 
 	return stab;
 }
 
+//Function for split algorithm
 double runSplit(std::vector<DataPoint> dataPoints, int size) {
 	std::vector<DataPoint> centroids = generateRandomCentroids(1, dataPoints);
 	std::vector<int> partition(dataPoints.size(), 0);
-	std::vector <double> sses(dataPoints.size()); //ei vielä käytössä
-	double sse = 0; //tämä ei ole käytössä, tätä voisi käyttää tentative valintaan
+	std::vector <double> sses(dataPoints.size()); //ei käytössä, voisi käyttää tentative valintaan
+	double sse = 0; //ei käytössä, voisi käyttää tentative valintaan
 
 	while (centroids.size() != size) {
 		int c = select_randomly(centroids.begin(), centroids.end());
@@ -977,6 +905,7 @@ double runSplit(std::vector<DataPoint> dataPoints, int size) {
 int main() {
 	int numDimensions = getNumDimensions(DATA_FILENAME);
 
+	//string stuff, medoids
 	if (false) {
 		// Edit distance between 2 strings
 		std::cout << "Edit distance between 2 strings" << std::endl;
@@ -984,7 +913,7 @@ int main() {
 		std::string str2 = "koiranpentu";
 		std::cout << "Edit distance between '" << str1 << "' and '" << str2 << "': " << editDistance(str1, str2) << std::endl;
 	
-		// All pairwise distances between two clusters
+		// Pairwise distances between two clusters
 		std::cout << "All pairwise distances between two clusters" << std::endl;
 		std::vector<std::string> strCluster1 = { "ireadL", "relanE", "rlanZd", "irelLITnd"};
 		std::vector<std::string> strCluster2 = { "fiInVlLand", "filanNM", "finPAlaQd", "finlCnUd"};
@@ -1037,88 +966,77 @@ int main() {
 		std::cout << "Medoid of the cluster2: " << result.first << ", cost: " << result.second << std::endl;
 	}
 
-	if(true){ //(numDimensions != -1) {
+	//kmeans, randomswap, deterministic swap, split, etc
+	if(true){
 		std::cout << "Number of dimensions in the data: " << numDimensions << std::endl;
 
-		// Read data points
 		std::vector<DataPoint> dataPoints = readDataPoints(DATA_FILENAME);
-			
-		//meanShift
-		//disabled as it would take hours
+		std::cout << "Dataset size: " << dataPoints.size() << std::endl;
+
+		//meanShift --> disabled as it would take hours
 		/*for (int i = 0; i < 1; ++i) {
 			meanShift(dataPoints, 3);
 		}
 		*/
 
 		// Generate and write centroids
+		// we also initialize ogCentroids here, so we can compare k-means and random swap from the same starting point
 		std::vector<DataPoint> centroids = generateRandomCentroids(NUM_CENTROIDS, dataPoints);
 		std::vector<DataPoint> ogCentroids(centroids.begin(), centroids.end());
 
-
+		// Liittyy ensimmäisten viikkojen tehtäviin
 		writeCentroidsToFile(centroids, CENTROID_FILENAME);
-
-		// Generate and write random partitions
 		writePartitionToFile(generateRandomPartitions(dataPoints.size(), NUM_CENTROIDS), PARTITION_FILENAME);
-
-		// Calculate and report sum-of-squared errors
-		double sse = calculateRandomSSE(dataPoints, centroids);
-		std::cout << "(Start) Sum-of-Squared Errors (SSE): " << sse << std::endl;
-
-		// Calculate and report average pairwise distance
 		calculateAndReportAverageDistance(dataPoints);
-
-
-		// Example: Find the nearest neighbor of a random data point in the original dataset
 		// Disabled, as nearestNeighbor updates minDistance --> might cause problems
 		//findNearestNeighborExample(dataPoints);
+		//Disabled, makes the prints more confusing
+		// SSE between a random centroid and ALL data points
+		//double sse = calculateRandomSSE(dataPoints, centroids);
+		//std::cout << "(Random) Sum-of-Squared Errors (SSE): " << sse << std::endl;
 
 		// Start the clock
 		auto start = std::chrono::high_resolution_clock::now();
 
-		// Initial partition and SSE using random centroids
+		// Initial partition and SSE
 		std::vector<int> initialPartition = optimalPartition(dataPoints, centroids);
 		double initialSSE = calculateSSE(dataPoints, centroids, initialPartition);
+		std::cout << "Initial Total Sum-of-Squared Errors (SSE): " << initialSSE << std::endl;
 
-		std::vector<int> initialSizes(centroids.size(), 0);
+		//Related to centroidDistance() function a bit below
+		/*std::vector<int> initialSizes(centroids.size(), 0);
 		for (size_t i = 0; i < initialPartition.size(); ++i) {
 			initialSizes[initialPartition[i]] += 1;
-		}
-		std::cout << "Dataset size: " << dataPoints.size() << std::endl;
-		for (size_t i = 0; i < centroids.size(); ++i) {
+		}*/ 
+
+		//Helper --> can be used to print the size of individual clusters
+		/*for (size_t i = 0; i < centroids.size(); ++i) {
 			std::cout << "size: " << initialSizes[i] << std::endl;
-		}
+		}*/
 
 		//Example: Euclidian distance between two centroids multiplied by their sizes
-		double exDist = centroidDistance(centroids[0], initialSizes[0], centroids[1], initialSizes[1]);
-		std::cout << "Euclidian distance between two centroids multiplied by their sizes: " << exDist << std::endl;
+		//double exDist = centroidDistance(centroids[0], initialSizes[0], centroids[1], initialSizes[1]);
+		//std::cout << "Euclidian distance between two centroids multiplied by their sizes: " << exDist << std::endl;
 
 		//Example: Pairwise distances of 2 clusters
-		double exPairwiseDistance = calculatePairwiseDistancesOfClusters(dataPoints, initialPartition, 0, 1);
-		std::cout << "Pairwise distance of 2 clusters: " << exPairwiseDistance << std::endl;
-
+		//double exPairwiseDistance = calculatePairwiseDistancesOfClusters(dataPoints, initialPartition, 0, 1);
+		//std::cout << "Pairwise distance of 2 clusters: " << exPairwiseDistance << std::endl;
 
 		// Write the initial partition to a text file
 		//writePartitionToFile(initialPartition, OUTPUTS_FOLDER + "OptimalPartition.txt");
 
-		// Print initial SSE
-		std::cout << "Initial Total Sum-of-Squared Errors (SSE): " << initialSSE << std::endl;
-
-		double bestSse1 = initialSSE;
-		int stopCounter = 0;
-
 		//run just k-means
-		bestSse1 = runKMeans(dataPoints, MAX_ITERATIONS, centroids);
+		double bestSse1 = runKMeans(dataPoints, MAX_ITERATIONS, centroids);
 		
 		// Stop the clock
 		auto end = std::chrono::high_resolution_clock::now();
-
 		// Calculate the duration
 		std::chrono::duration<double> duration = end - start;
-
 		// Output the duration in seconds
-		std::cout << "(Naive)Time taken: " << duration.count() << " seconds" << std::endl;
+		std::cout << "(K-means)Time taken: " << duration.count() << " seconds" << std::endl;
 
-		/*
+		double bestSse5 = bestSse1;
+
 		//Repeated k-means
 		for (int repeat = 0; repeat < MAX_REPEATS; ++repeat) {
 			std::cout << "round: " << repeat << std::endl;
@@ -1128,14 +1046,13 @@ int main() {
 
 			double newSse = runKMeans(dataPoints, MAX_ITERATIONS, centroids);	
 
-			if (newSse < bestSse1) {
-				bestSse1 = newSse;
+			if (newSse < bestSse5) {
+				bestSse5 = newSse;
 			}
 		}
-		*/
 		
-		//Write the constructed centroids to a text file (optional)
-		writeCentroidsToFile(centroids, OUTPUTS_FOLDER + "ConstructedCentroids.txt");
+		//Write the constructed centroids to a text file (disabled)
+		//writeCentroidsToFile(centroids, OUTPUTS_FOLDER + "ConstructedCentroids.txt");
 
 		// Start the clock
 		start = std::chrono::high_resolution_clock::now();
@@ -1145,12 +1062,10 @@ int main() {
 
 		// Stop the clock
 		end = std::chrono::high_resolution_clock::now();
-
 		// Calculate the duration
 		duration = end - start;
-
 		// Output the duration in seconds
-		std::cout << "(RS)Time taken: " << duration.count() << " seconds" << std::endl;
+		std::cout << "(Random Swap)Time taken: " << duration.count() << " seconds" << std::endl;
 
 		// Start the clock
 		start = std::chrono::high_resolution_clock::now();
@@ -1159,12 +1074,10 @@ int main() {
 
 		// Stop the clock
 		end = std::chrono::high_resolution_clock::now();
-
 		// Calculate the duration
 		duration = end - start;
-
 		// Output the duration in seconds
-		std::cout << "(Heur)Time taken: " << duration.count() << " seconds" << std::endl;
+		std::cout << "(Deterministic)Time taken: " << duration.count() << " seconds" << std::endl;
 
 		// Start the clock
 		start = std::chrono::high_resolution_clock::now();
@@ -1173,16 +1086,15 @@ int main() {
 
 		// Stop the clock
 		end = std::chrono::high_resolution_clock::now();
-
 		// Calculate the duration
 		duration = end - start;
-
 		// Output the duration in seconds
 		std::cout << "(Split)Time taken: " << duration.count() << " seconds" << std::endl;
 
-		std::cout << "(Naive)Best Sum-of-Squared Errors (SSE): " << bestSse1 << std::endl;
-		std::cout << "(RS)Best Sum-of-Squared Errors (SSE): " << bestSse2 << std::endl;
-		std::cout << "(Heur)Best Sum-of-Squared Errors (SSE): " << bestSse3 << std::endl;
+		std::cout << "(K-means)Best Sum-of-Squared Errors (SSE): " << bestSse1 << std::endl;
+		std::cout << "(Repeated K-means)Best Sum-of-Squared Errors (SSE): " << bestSse5 << std::endl;
+		std::cout << "(Random Swap)Best Sum-of-Squared Errors (SSE): " << bestSse2 << std::endl;
+		std::cout << "(Deterministic Swap)Best Sum-of-Squared Errors (SSE): " << bestSse3 << std::endl;
 		std::cout << "(Split)Best Sum-of-Squared Errors (SSE): " << bestSse4 << std::endl;
 
 		return 0;
@@ -1217,7 +1129,7 @@ int main() {
 		std::cout << "Initial Total Sum-of-Squared Errors (SSE): " << initialSSE << std::endl;
 
 		std::pair<double, std::vector<int>> bestSse1 = runKMeans(dataPoints, MAX_ITERATIONS, centroids, true);
-		std::cout << "(Naive)Best Sum-of-Squared Errors (SSE): " << bestSse1.first << std::endl;
+		std::cout << "(K-means)Best Sum-of-Squared Errors (SSE): " << bestSse1.first << std::endl;
 
 
 		// Initial partition and SSE using random centroids
@@ -1234,7 +1146,7 @@ int main() {
 		return 0;
 	}
 
-	//grid stuff
+	//grid stuff (unfinished)
 	if (false) {
 		std::cout << "Number of dimensions in the data: " << numDimensions << std::endl;
 
@@ -1254,8 +1166,6 @@ int main() {
 
 		// Read data points
 		std::vector<DataPoint> ogDataPoints = readDataPoints(DATA_FILENAME);
-
-
 
 	}
 }
