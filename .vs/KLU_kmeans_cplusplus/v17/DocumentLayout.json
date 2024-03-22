@@ -1,0 +1,37 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Niko\\Documents\\GitHub\\Clustering-cpp\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{766A2E67-0498-4D59-AB9A-2ABE90E470EF}|KLU_kmeans_cplusplus\\KLU_kmeans_cplusplus.vcxproj|C:\\Users\\Niko\\Documents\\GitHub\\Clustering-cpp\\KLU_kmeans_cplusplus\\KLU_kmeans_cplusplus.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{766A2E67-0498-4D59-AB9A-2ABE90E470EF}|KLU_kmeans_cplusplus\\KLU_kmeans_cplusplus.vcxproj|solutionrelative:KLU_kmeans_cplusplus\\KLU_kmeans_cplusplus.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "KLU_kmeans_cplusplus.cpp",
+              "DocumentMoniker": "C:\\Users\\Niko\\Documents\\GitHub\\Clustering-cpp\\KLU_kmeans_cplusplus\\KLU_kmeans_cplusplus.cpp",
+              "RelativeDocumentMoniker": "KLU_kmeans_cplusplus\\KLU_kmeans_cplusplus.cpp",
+              "ToolTip": "C:\\Users\\Niko\\Documents\\GitHub\\Clustering-cpp\\KLU_kmeans_cplusplus\\KLU_kmeans_cplusplus.cpp",
+              "RelativeToolTip": "KLU_kmeans_cplusplus\\KLU_kmeans_cplusplus.cpp",
+              "ViewState": "AQIAAOIAAAAAAAAAAAAhwO0AAAAIAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2024-02-05T18:29:23.989Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

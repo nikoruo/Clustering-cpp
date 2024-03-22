@@ -14,7 +14,7 @@
 //Constants for file locations,
 const std::string DATA_FOLDER = "data/";
 const std::string OUTPUTS_FOLDER = "outputs/";
-const std::string DATA_FILENAME = DATA_FOLDER + "s1.txt";
+const std::string DATA_FILENAME = DATA_FOLDER + "s4.txt";
 const std::string CENTROID_FILENAME = OUTPUTS_FOLDER + "centroid.txt";
 const std::string PARTITION_FILENAME = OUTPUTS_FOLDER + "partition.txt";
 const char SEPARATOR = ' ';
@@ -989,7 +989,7 @@ int main() {
 	}
 
 	//kmeans, randomswap, deterministic swap, split, etc
-	if(false){
+	if(true){
 		std::cout << "Number of dimensions in the data: " << numDimensions << std::endl;
 
 		std::vector<DataPoint> dataPoints = readDataPoints(DATA_FILENAME);
@@ -1122,7 +1122,7 @@ int main() {
 	}
 
 	//subset stuff
-	if (true) {
+	if (false) {
 		std::cout << "Number of dimensions in the data: " << numDimensions << std::endl;
 
 		std::vector<DataPoint> dataPoints = readDataPoints(DATA_FILENAME);
